@@ -1,0 +1,1743 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>乙浦飯店メニュー表</title>
+<!-- PWA設定 -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#e8594f">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="乙浦飯店">
+<style>
+/* ===== リセット・基本設定 ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --primary: #e8594f;
+  --primary-hover: #d04a41;
+  --bg: #f5f0eb;
+  --card-bg: #fff;
+  --text: #333;
+  --text-light: #666;
+  --border: #ddd;
+  --tag-bg: #fef3e2;
+  --tag-text: #b87333;
+  --shadow: 0 2px 8px rgba(0,0,0,0.08);
+  --radius: 10px;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* ===== ヘッダー ===== */
+.header {
+  background: var(--primary);
+  color: #fff;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.header-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: background 0.2s, transform 0.1s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn:active { transform: scale(0.97); }
+
+.btn-add {
+  background: #fff;
+  color: var(--primary);
+}
+.btn-add:hover { background: #f0f0f0; }
+
+.btn-export {
+  background: rgba(255,255,255,0.2);
+  color: #fff;
+}
+.btn-export:hover { background: rgba(255,255,255,0.35); }
+
+.btn-import {
+  background: rgba(255,255,255,0.2);
+  color: #fff;
+}
+.btn-import:hover { background: rgba(255,255,255,0.35); }
+
+/* ===== 検索・フィルタエリア ===== */
+.controls {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px 20px;
+}
+
+.search-bar {
+  position: relative;
+  margin-bottom: 12px;
+}
+
+.search-bar input {
+  width: 100%;
+  padding: 12px 90px 12px 44px;
+  border: 2px solid var(--border);
+  border-radius: 30px;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s;
+  background: #fff;
+}
+
+.search-bar input:focus { border-color: var(--primary); }
+
+.search-bar .search-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #999;
+  font-size: 1.1rem;
+  pointer-events: none;
+}
+
+.search-btn {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 8px 16px;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.search-btn:hover { background: var(--primary-hover); }
+
+.search-clear-btn {
+  position: absolute;
+  right: 80px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  font-size: 1.1rem;
+  padding: 4px 8px;
+}
+
+.search-clear-btn:hover { color: var(--text); }
+
+.filter-section {
+  margin-bottom: 8px;
+}
+
+.filter-label {
+  font-size: 0.8rem;
+  color: var(--text-light);
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  padding: 5px 14px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border);
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.chip:hover { border-color: var(--primary); color: var(--primary); }
+
+.chip.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+/* ===== レシピカード一覧 ===== */
+.recipe-grid {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px 40px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.recipe-card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.recipe-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+}
+
+.card-name {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.card-youtuber {
+  font-size: 0.9rem;
+  color: var(--text-light);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.card-tag {
+  padding: 2px 10px;
+  border-radius: 12px;
+  background: var(--tag-bg);
+  color: var(--tag-text);
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.empty-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-light);
+}
+
+.empty-state .empty-icon {
+  font-size: 3rem;
+  margin-bottom: 12px;
+}
+
+.empty-state p {
+  font-size: 1.1rem;
+}
+
+/* ===== モーダル ===== */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 200;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.modal-overlay.active { display: flex; }
+
+.modal {
+  background: #fff;
+  border-radius: var(--radius);
+  width: 100%;
+  max-width: 600px;
+  margin: 20px auto;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+  animation: modalIn 0.2s ease-out;
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-header h2 {
+  font-size: 1.2rem;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--text-light);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.modal-close:hover { background: #f0f0f0; }
+
+.modal-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: var(--text);
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  border-color: var(--primary);
+}
+
+.form-group textarea { resize: vertical; min-height: 80px; }
+
+.form-group .tag-input-wrap {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 8px;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  min-height: 42px;
+  cursor: text;
+  transition: border-color 0.2s;
+}
+
+.form-group .tag-input-wrap:focus-within { border-color: var(--primary); }
+
+.tag-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  background: var(--tag-bg);
+  color: var(--tag-text);
+  border-radius: 12px;
+  font-size: 0.85rem;
+}
+
+.tag-item button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  color: var(--tag-text);
+  padding: 0;
+  line-height: 1;
+}
+
+.tag-input {
+  border: none !important;
+  outline: none;
+  padding: 2px 4px !important;
+  font-size: 0.9rem;
+  flex: 1;
+  min-width: 80px;
+}
+
+.tag-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.tag-suggestions .chip {
+  padding: 3px 10px;
+  font-size: 0.78rem;
+}
+
+.modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.btn-cancel {
+  background: #f0f0f0;
+  color: var(--text);
+}
+.btn-cancel:hover { background: #e0e0e0; }
+
+.btn-save {
+  background: var(--primary);
+  color: #fff;
+}
+.btn-save:hover { background: var(--primary-hover); }
+
+.btn-delete {
+  background: #fff;
+  color: #d32f2f;
+  border: 1.5px solid #d32f2f;
+  margin-right: auto;
+}
+.btn-delete:hover { background: #fce4ec; }
+
+/* ===== 詳細モーダル ===== */
+.detail-section {
+  margin-bottom: 16px;
+}
+
+.detail-section h3 {
+  font-size: 0.9rem;
+  color: var(--text-light);
+  margin-bottom: 6px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 4px;
+}
+
+.detail-section p,
+.detail-section pre {
+  font-size: 0.95rem;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  line-height: 1.7;
+}
+
+.detail-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+
+.detail-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.btn-youtube {
+  background: #ff0000;
+  color: #fff;
+}
+.btn-youtube:hover { background: #cc0000; }
+
+.btn-edit {
+  background: var(--primary);
+  color: #fff;
+}
+.btn-edit:hover { background: var(--primary-hover); }
+
+/* ===== インポートモーダル ===== */
+#importFileInput { display: none; }
+
+/* ===== 設定・YouTube検索ボタン ===== */
+.btn-settings {
+  background: rgba(255,255,255,0.2);
+  color: #fff;
+}
+.btn-settings:hover { background: rgba(255,255,255,0.35); }
+
+.btn-youtube-search {
+  background: #fff;
+  color: #ff0000;
+}
+.btn-youtube-search:hover { background: #f0f0f0; }
+
+/* ===== YouTube検索結果カード ===== */
+.yt-results {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.yt-card {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  transition: border-color 0.2s;
+}
+
+.yt-card:hover { border-color: var(--primary); }
+
+.yt-thumb {
+  width: 120px;
+  min-width: 120px;
+  height: 90px;
+  border-radius: 6px;
+  object-fit: cover;
+  background: #eee;
+}
+
+.yt-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.yt-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.yt-channel {
+  font-size: 0.8rem;
+  color: var(--text-light);
+}
+
+.yt-actions {
+  margin-top: auto;
+  display: flex;
+  gap: 6px;
+}
+
+.btn-yt-save {
+  padding: 4px 12px;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+.btn-yt-save:hover { background: var(--primary-hover); }
+
+.btn-yt-watch {
+  padding: 4px 12px;
+  background: #ff0000;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+.btn-yt-watch:hover { background: #cc0000; }
+
+/* ===== YouTube検索バー ===== */
+.yt-search-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.yt-search-bar input {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.95rem;
+  outline: none;
+}
+
+.yt-search-bar input:focus { border-color: var(--primary); }
+
+.yt-search-bar button {
+  padding: 10px 20px;
+  background: #ff0000;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+.yt-search-bar button:hover { background: #cc0000; }
+
+.yt-no-key {
+  text-align: center;
+  padding: 30px 20px;
+  color: var(--text-light);
+}
+
+.yt-no-key button {
+  margin-top: 12px;
+  padding: 8px 20px;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+/* ===== 設定モーダル ===== */
+.settings-help {
+  margin-top: 8px;
+  font-size: 0.8rem;
+  color: var(--text-light);
+}
+
+.settings-help summary {
+  cursor: pointer;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.settings-help ol {
+  margin-top: 6px;
+  padding-left: 20px;
+  line-height: 1.8;
+}
+
+/* ===== プリセットタグ ===== */
+.preset-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.preset-tag {
+  padding: 3px 10px;
+  border-radius: 12px;
+  border: 1px dashed var(--tag-text);
+  background: transparent;
+  color: var(--tag-text);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.preset-tag:hover {
+  background: var(--tag-bg);
+  border-style: solid;
+}
+
+/* ===== ローディング ===== */
+.yt-loading {
+  text-align: center;
+  padding: 30px;
+  color: var(--text-light);
+}
+
+.yt-error {
+  text-align: center;
+  padding: 20px;
+  color: #d32f2f;
+  font-size: 0.9rem;
+}
+
+/* ===== PWA更新通知 ===== */
+.update-banner {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--text);
+  color: #fff;
+  padding: 12px 24px;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  z-index: 300;
+  display: none;
+  gap: 12px;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.update-banner.show { display: flex; }
+
+.update-banner button {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+/* ===== レスポンシブ ===== */
+@media (max-width: 600px) {
+  .header { padding: 12px 14px; }
+  .header-title { font-size: 1.15rem; }
+  .btn { padding: 7px 12px; font-size: 0.82rem; }
+  .controls { padding: 12px 14px; }
+  .recipe-grid {
+    grid-template-columns: 1fr;
+    padding: 0 14px 30px;
+  }
+  .modal { margin: 10px; }
+  .modal-body { padding: 16px; }
+  .yt-card { flex-direction: column; }
+  .yt-thumb { width: 100%; min-width: unset; height: auto; aspect-ratio: 16/9; }
+}
+</style>
+</head>
+<body>
+
+<!-- ===== ヘッダー ===== -->
+<header class="header">
+  <div class="header-title">&#x1F373; 乙浦飯店メニュー表</div>
+  <div class="header-actions">
+    <button class="btn btn-add" onclick="openAddModal()">&#xFF0B; レシピ追加</button>
+    <button class="btn btn-youtube-search" onclick="openYoutubeModal()">&#x25B6; YouTube検索</button>
+    <button class="btn btn-export" onclick="exportData()">&#x1F4E4; エクスポート</button>
+    <button class="btn btn-import" onclick="document.getElementById('importFileInput').click()">&#x1F4E5; インポート</button>
+    <input type="file" id="importFileInput" accept=".json" onchange="importData(event)">
+    <button class="btn btn-settings" onclick="openSettingsModal()">&#x2699; 設定</button>
+  </div>
+</header>
+
+<!-- ===== 検索・フィルタ ===== -->
+<div class="controls">
+  <div class="search-bar">
+    <span class="search-icon">&#x1F50D;</span>
+    <input type="text" id="searchInput" placeholder="料理名・材料・YouTuber名で検索...">
+    <button class="search-btn" id="searchBtn" onclick="applyFilters()">検索</button>
+    <button class="search-clear-btn" id="searchClearBtn" onclick="clearSearch()" style="display:none;">&#x2715;</button>
+  </div>
+  <div class="filter-section">
+    <div class="filter-label">タグフィルタ</div>
+    <div class="filter-chips" id="tagFilters"></div>
+  </div>
+  <div class="filter-section" style="margin-top:10px;">
+    <div class="filter-label">YouTuberフィルタ</div>
+    <div class="filter-chips" id="youtuberFilters"></div>
+  </div>
+</div>
+
+<!-- ===== レシピ一覧 ===== -->
+<div class="recipe-grid" id="recipeGrid"></div>
+
+<!-- ===== 追加・編集モーダル ===== -->
+<div class="modal-overlay" id="formModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="formModalTitle">レシピ追加</h2>
+      <button class="modal-close" onclick="closeFormModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editId">
+      <div class="form-group">
+        <label>料理名 *</label>
+        <input type="text" id="inputName" placeholder="例: 親子丼">
+      </div>
+      <div class="form-group">
+        <label>YouTuber名</label>
+        <input type="text" id="inputYoutuber" placeholder="例: リュウジ">
+      </div>
+      <div class="form-group">
+        <label>YouTubeリンク</label>
+        <input type="url" id="inputUrl" placeholder="https://youtube.com/...">
+      </div>
+      <div class="form-group">
+        <label>材料</label>
+        <textarea id="inputIngredients" placeholder="例:&#10;鶏もも肉 200g&#10;玉ねぎ 1/2個&#10;卵 3個"></textarea>
+      </div>
+      <div class="form-group">
+        <label>手順</label>
+        <textarea id="inputSteps" placeholder="例:&#10;1. 鶏肉を一口大に切る&#10;2. 玉ねぎを薄切りにする"></textarea>
+      </div>
+      <div class="form-group">
+        <label>タグ</label>
+        <div class="tag-input-wrap" onclick="this.querySelector('.tag-input').focus()">
+          <span id="tagContainer"></span>
+          <input type="text" class="tag-input" id="tagInput" placeholder="タグを入力してEnter"
+                 onkeydown="handleTagKeydown(event)">
+        </div>
+        <div class="preset-tags" id="presetTags"></div>
+        <div class="tag-suggestions" id="tagSuggestions"></div>
+      </div>
+      <div class="form-group">
+        <label>メモ</label>
+        <textarea id="inputMemo" placeholder="自由メモ"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-delete" id="deleteBtn" onclick="deleteRecipe()" style="display:none">削除</button>
+      <button class="btn btn-cancel" onclick="closeFormModal()">キャンセル</button>
+      <button class="btn btn-save" onclick="saveRecipe()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 詳細モーダル ===== -->
+<div class="modal-overlay" id="detailModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="detailTitle">レシピ詳細</h2>
+      <button class="modal-close" onclick="closeDetailModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="detailBody"></div>
+    <div class="modal-footer" id="detailFooter"></div>
+  </div>
+</div>
+
+<!-- ===== 設定モーダル ===== -->
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>&#x2699; 設定</h2>
+      <button class="modal-close" onclick="closeSettingsModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>YouTube Data API キー</label>
+        <input type="text" id="inputApiKey" placeholder="AIza...">
+        <div class="settings-help">
+          <details>
+            <summary>APIキーの取得方法</summary>
+            <ol>
+              <li><a href="https://console.cloud.google.com/" target="_blank" rel="noopener">Google Cloud Console</a> にアクセス</li>
+              <li>新しいプロジェクトを作成</li>
+              <li>「APIとサービス」→「ライブラリ」で「YouTube Data API v3」を有効化</li>
+              <li>「認証情報」→「認証情報を作成」→「APIキー」を選択</li>
+              <li>生成されたAPIキーをコピーして上の欄に入力</li>
+            </ol>
+            <p style="margin-top:6px;">※ 無料枠: 1日10,000ユニット（検索約100回/日）</p>
+          </details>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-cancel" onclick="closeSettingsModal()">キャンセル</button>
+      <button class="btn btn-save" onclick="saveApiKey()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== YouTube検索モーダル ===== -->
+<div class="modal-overlay" id="youtubeModal">
+  <div class="modal" style="max-width:700px;">
+    <div class="modal-header">
+      <h2>&#x25B6; YouTube動画検索</h2>
+      <button class="modal-close" onclick="closeYoutubeModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="youtubeBody">
+      <!-- APIキーがない場合のガイド -->
+      <div id="ytNoKeyMsg" class="yt-no-key" style="display:none;">
+        <p>YouTube検索にはAPIキーが必要です</p>
+        <button onclick="closeYoutubeModal(); openSettingsModal();">設定画面でAPIキーを登録</button>
+      </div>
+      <!-- 検索バー -->
+      <div id="ytSearchArea" style="display:none;">
+        <div class="yt-search-bar">
+          <input type="text" id="ytSearchInput" placeholder="料理名・食材で動画を検索...">
+          <button onclick="searchYoutube()">検索</button>
+        </div>
+        <div id="ytResults"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PWA更新通知 ===== -->
+<div class="update-banner" id="updateBanner">
+  <span>新しいバージョンが利用可能です</span>
+  <button onclick="location.reload()">更新</button>
+</div>
+
+<script>
+// ===== データ管理 =====
+const STORAGE_KEY = 'recipe-collection';
+
+// localStorageからレシピ一覧を取得
+function getRecipes() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+  } catch {
+    return [];
+  }
+}
+
+// localStorageにレシピ一覧を保存
+function setRecipes(recipes) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(recipes));
+}
+
+// 一意のIDを生成
+function generateId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+
+// ===== フィルタ状態 =====
+let activeTag = null;
+let activeYoutuber = null;
+
+// ===== レシピ一覧の描画 =====
+function renderRecipes(recipes, isFiltered) {
+  var grid = document.getElementById('recipeGrid');
+
+  if (recipes.length === 0) {
+    if (isFiltered) {
+      grid.innerHTML = '<div class="empty-state">' +
+        '<div class="empty-icon">&#x1F50D;</div>' +
+        '<p>一致するレシピが見つかりません</p>' +
+        '<p style="font-size:0.9rem;margin-top:8px;">別のキーワードで検索してみてください</p>' +
+        '</div>';
+    } else {
+      grid.innerHTML = '<div class="empty-state">' +
+        '<div class="empty-icon">&#x1F371;</div>' +
+        '<p>レシピがありません</p>' +
+        '<p style="font-size:0.9rem;margin-top:8px;">「＋ レシピ追加」ボタンからレシピを登録しましょう</p>' +
+        '</div>';
+    }
+    return;
+  }
+
+  grid.innerHTML = '';
+  recipes.forEach(function(r) {
+    var card = document.createElement('div');
+    card.className = 'recipe-card';
+    card.addEventListener('click', function() { openDetail(r.id); });
+
+    var nameDiv = document.createElement('div');
+    nameDiv.className = 'card-name';
+    nameDiv.textContent = r.name;
+    card.appendChild(nameDiv);
+
+    if (r.youtuber) {
+      var ytDiv = document.createElement('div');
+      ytDiv.className = 'card-youtuber';
+      ytDiv.textContent = '\uD83C\uDFAC ' + r.youtuber;
+      card.appendChild(ytDiv);
+    }
+
+    if (r.tags && r.tags.length) {
+      var tagsDiv = document.createElement('div');
+      tagsDiv.className = 'card-tags';
+      r.tags.forEach(function(t) {
+        var tagSpan = document.createElement('span');
+        tagSpan.className = 'card-tag';
+        tagSpan.textContent = t;
+        tagsDiv.appendChild(tagSpan);
+      });
+      card.appendChild(tagsDiv);
+    }
+
+    grid.appendChild(card);
+  });
+}
+
+// ===== フィルタチップの描画 =====
+function renderFilters() {
+  var recipes = getRecipes();
+
+  // 全タグを収集
+  var tagSet = {};
+  recipes.forEach(function(r) {
+    (r.tags || []).forEach(function(t) { tagSet[t] = true; });
+  });
+  var tags = Object.keys(tagSet).sort();
+
+  // タグチップを生成（DOM操作で作成）
+  var tagContainer = document.getElementById('tagFilters');
+  tagContainer.innerHTML = '';
+
+  if (tags.length > 0) {
+    // 「すべて」チップ
+    var allChip = document.createElement('span');
+    allChip.className = 'chip' + (activeTag === null ? ' active' : '');
+    allChip.textContent = 'すべて';
+    allChip.addEventListener('click', function() {
+      activeTag = null;
+      applyFilters();
+    });
+    tagContainer.appendChild(allChip);
+
+    // 各タグチップ
+    tags.forEach(function(t) {
+      var chip = document.createElement('span');
+      chip.className = 'chip' + (activeTag === t ? ' active' : '');
+      chip.textContent = t;
+      chip.addEventListener('click', function() {
+        activeTag = t;
+        applyFilters();
+      });
+      tagContainer.appendChild(chip);
+    });
+  } else {
+    tagContainer.innerHTML = '<span style="color:#999;font-size:0.85rem;">タグなし</span>';
+  }
+
+  // 全YouTuber名を収集
+  var youtuberSet = {};
+  recipes.forEach(function(r) {
+    if (r.youtuber) youtuberSet[r.youtuber] = true;
+  });
+  var youtubers = Object.keys(youtuberSet).sort();
+
+  // YouTuberチップを生成（DOM操作で作成）
+  var ytContainer = document.getElementById('youtuberFilters');
+  ytContainer.innerHTML = '';
+
+  if (youtubers.length > 0) {
+    // 「全員」チップ
+    var allYtChip = document.createElement('span');
+    allYtChip.className = 'chip' + (activeYoutuber === null ? ' active' : '');
+    allYtChip.textContent = '全員';
+    allYtChip.addEventListener('click', function() {
+      activeYoutuber = null;
+      applyFilters();
+    });
+    ytContainer.appendChild(allYtChip);
+
+    // 各YouTuberチップ
+    youtubers.forEach(function(y) {
+      var chip = document.createElement('span');
+      chip.className = 'chip' + (activeYoutuber === y ? ' active' : '');
+      chip.textContent = y;
+      chip.addEventListener('click', function() {
+        activeYoutuber = y;
+        applyFilters();
+      });
+      ytContainer.appendChild(chip);
+    });
+  } else {
+    ytContainer.innerHTML = '<span style="color:#999;font-size:0.85rem;">YouTuber未登録</span>';
+  }
+}
+
+// ===== 検索クリア =====
+function clearSearch() {
+  document.getElementById('searchInput').value = '';
+  applyFilters();
+}
+
+// ===== 検索・フィルタの適用 =====
+function applyFilters() {
+  var searchInput = document.getElementById('searchInput');
+  var query = (searchInput.value || '').trim().toLowerCase();
+  var allRecipes = getRecipes();
+  var recipes = allRecipes;
+
+  // クリアボタンの表示切替
+  var clearBtn = document.getElementById('searchClearBtn');
+  if (clearBtn) {
+    clearBtn.style.display = query ? 'block' : 'none';
+  }
+
+  // キーワード検索（料理名・材料・YouTuber名・メモ・手順）
+  if (query) {
+    recipes = recipes.filter(function(r) {
+      return (r.name || '').toLowerCase().indexOf(query) !== -1 ||
+        (r.ingredients || '').toLowerCase().indexOf(query) !== -1 ||
+        (r.youtuber || '').toLowerCase().indexOf(query) !== -1 ||
+        (r.memo || '').toLowerCase().indexOf(query) !== -1 ||
+        (r.steps || '').toLowerCase().indexOf(query) !== -1;
+    });
+  }
+
+  // タグフィルタ
+  if (activeTag !== null) {
+    recipes = recipes.filter(function(r) {
+      return (r.tags || []).indexOf(activeTag) !== -1;
+    });
+  }
+
+  // YouTuberフィルタ
+  if (activeYoutuber !== null) {
+    recipes = recipes.filter(function(r) {
+      return r.youtuber === activeYoutuber;
+    });
+  }
+
+  renderRecipes(recipes, allRecipes.length > 0 && recipes.length === 0);
+  renderFilters();
+}
+
+// ===== レシピ追加モーダル =====
+function openAddModal() {
+  document.getElementById('formModalTitle').textContent = 'レシピ追加';
+  document.getElementById('editId').value = '';
+  document.getElementById('inputName').value = '';
+  document.getElementById('inputYoutuber').value = '';
+  document.getElementById('inputUrl').value = '';
+  document.getElementById('inputIngredients').value = '';
+  document.getElementById('inputSteps').value = '';
+  document.getElementById('inputMemo').value = '';
+  document.getElementById('deleteBtn').style.display = 'none';
+  currentTags = [];
+  renderTagInput();
+  renderTagSuggestions();
+  document.getElementById('formModal').classList.add('active');
+}
+
+// ===== レシピ編集モーダル =====
+function openEditModal(id) {
+  const recipe = getRecipes().find(r => r.id === id);
+  if (!recipe) return;
+
+  document.getElementById('formModalTitle').textContent = 'レシピ編集';
+  document.getElementById('editId').value = id;
+  document.getElementById('inputName').value = recipe.name || '';
+  document.getElementById('inputYoutuber').value = recipe.youtuber || '';
+  document.getElementById('inputUrl').value = recipe.youtubeUrl || '';
+  document.getElementById('inputIngredients').value = recipe.ingredients || '';
+  document.getElementById('inputSteps').value = recipe.steps || '';
+  document.getElementById('inputMemo').value = recipe.memo || '';
+  document.getElementById('deleteBtn').style.display = 'inline-flex';
+  currentTags = [...(recipe.tags || [])];
+  renderTagInput();
+  renderTagSuggestions();
+  closeDetailModal();
+  document.getElementById('formModal').classList.add('active');
+}
+
+function closeFormModal() {
+  document.getElementById('formModal').classList.remove('active');
+}
+
+// ===== レシピ保存 =====
+function saveRecipe() {
+  const name = document.getElementById('inputName').value.trim();
+  if (!name) {
+    alert('料理名を入力してください。');
+    return;
+  }
+
+  const editId = document.getElementById('editId').value;
+  const recipes = getRecipes();
+
+  const data = {
+    name,
+    youtuber: document.getElementById('inputYoutuber').value.trim(),
+    youtubeUrl: document.getElementById('inputUrl').value.trim(),
+    ingredients: document.getElementById('inputIngredients').value.trim(),
+    steps: document.getElementById('inputSteps').value.trim(),
+    tags: [...currentTags],
+    memo: document.getElementById('inputMemo').value.trim(),
+  };
+
+  if (editId) {
+    // 編集
+    const idx = recipes.findIndex(r => r.id === editId);
+    if (idx !== -1) {
+      recipes[idx] = { ...recipes[idx], ...data };
+    }
+  } else {
+    // 新規追加
+    recipes.push({
+      id: generateId(),
+      ...data,
+      createdAt: new Date().toISOString(),
+    });
+  }
+
+  setRecipes(recipes);
+  closeFormModal();
+  applyFilters();
+}
+
+// ===== レシピ削除 =====
+function deleteRecipe() {
+  const editId = document.getElementById('editId').value;
+  if (!editId) return;
+  if (!confirm('このレシピを削除しますか？')) return;
+
+  const recipes = getRecipes().filter(r => r.id !== editId);
+  setRecipes(recipes);
+  closeFormModal();
+  applyFilters();
+}
+
+// ===== タグ入力 =====
+let currentTags = [];
+
+function renderTagInput() {
+  var container = document.getElementById('tagContainer');
+  container.innerHTML = '';
+  currentTags.forEach(function(t, i) {
+    var span = document.createElement('span');
+    span.className = 'tag-item';
+    span.textContent = t;
+    var btn = document.createElement('button');
+    btn.textContent = '\u00D7';
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      removeTag(i);
+    });
+    span.appendChild(btn);
+    container.appendChild(span);
+  });
+}
+
+function removeTag(index) {
+  currentTags.splice(index, 1);
+  renderTagInput();
+  renderTagSuggestions();
+}
+
+function handleTagKeydown(e) {
+  const input = e.target;
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const val = input.value.trim();
+    if (val && !currentTags.includes(val)) {
+      currentTags.push(val);
+      renderTagInput();
+      renderTagSuggestions();
+    }
+    input.value = '';
+  }
+}
+
+// 既存タグの候補を表示
+function renderTagSuggestions() {
+  var recipes = getRecipes();
+  var allTagsObj = {};
+  recipes.forEach(function(r) {
+    (r.tags || []).forEach(function(t) { allTagsObj[t] = true; });
+  });
+
+  // 現在選択中のタグを除外
+  var suggestions = Object.keys(allTagsObj).filter(function(t) {
+    return currentTags.indexOf(t) === -1;
+  }).sort();
+
+  var container = document.getElementById('tagSuggestions');
+  container.innerHTML = '';
+  suggestions.forEach(function(t) {
+    var chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.textContent = t;
+    chip.addEventListener('click', function() {
+      if (currentTags.indexOf(t) === -1) {
+        currentTags.push(t);
+        renderTagInput();
+        renderTagSuggestions();
+      }
+    });
+    container.appendChild(chip);
+  });
+}
+
+// ===== 詳細モーダル =====
+function openDetail(id) {
+  var recipe = getRecipes().find(function(r) { return r.id === id; });
+  if (!recipe) return;
+
+  document.getElementById('detailTitle').textContent = recipe.name;
+
+  // 本体をDOM操作で構築
+  var body = document.getElementById('detailBody');
+  body.innerHTML = '';
+
+  function addSection(title, content, isPreformatted) {
+    var section = document.createElement('div');
+    section.className = 'detail-section';
+    var h3 = document.createElement('h3');
+    h3.textContent = title;
+    section.appendChild(h3);
+    var el = document.createElement(isPreformatted ? 'pre' : 'p');
+    el.textContent = content;
+    section.appendChild(el);
+    body.appendChild(section);
+  }
+
+  if (recipe.youtuber) {
+    addSection('YouTuber', '\uD83C\uDFAC ' + recipe.youtuber, false);
+  }
+
+  if (recipe.ingredients) {
+    addSection('材料', recipe.ingredients, true);
+  }
+
+  if (recipe.steps) {
+    addSection('手順', recipe.steps, true);
+  }
+
+  if (recipe.tags && recipe.tags.length) {
+    var tagSection = document.createElement('div');
+    tagSection.className = 'detail-section';
+    var tagH3 = document.createElement('h3');
+    tagH3.textContent = 'タグ';
+    tagSection.appendChild(tagH3);
+    var tagDiv = document.createElement('div');
+    tagDiv.className = 'detail-tags';
+    recipe.tags.forEach(function(t) {
+      var span = document.createElement('span');
+      span.className = 'card-tag';
+      span.textContent = t;
+      tagDiv.appendChild(span);
+    });
+    tagSection.appendChild(tagDiv);
+    body.appendChild(tagSection);
+  }
+
+  if (recipe.memo) {
+    addSection('メモ', recipe.memo, true);
+  }
+
+  if (recipe.createdAt) {
+    var dateSection = document.createElement('div');
+    dateSection.className = 'detail-section';
+    dateSection.style.color = '#999';
+    dateSection.style.fontSize = '0.8rem';
+    var date = new Date(recipe.createdAt);
+    dateSection.textContent = '登録日: ' + date.toLocaleDateString('ja-JP');
+    body.appendChild(dateSection);
+  }
+
+  // フッターボタンをDOM操作で構築
+  var footer = document.getElementById('detailFooter');
+  footer.innerHTML = '';
+
+  if (recipe.youtubeUrl) {
+    var ytLink = document.createElement('a');
+    ytLink.href = recipe.youtubeUrl;
+    ytLink.target = '_blank';
+    ytLink.rel = 'noopener noreferrer';
+    ytLink.className = 'btn btn-youtube';
+    ytLink.style.textDecoration = 'none';
+    ytLink.textContent = '\u25B6 YouTubeで見る';
+    footer.appendChild(ytLink);
+  }
+
+  var editBtn = document.createElement('button');
+  editBtn.className = 'btn btn-edit';
+  editBtn.textContent = '\u270F 編集';
+  editBtn.addEventListener('click', function() {
+    openEditModal(recipe.id);
+  });
+  footer.appendChild(editBtn);
+
+  document.getElementById('detailModal').classList.add('active');
+}
+
+function closeDetailModal() {
+  document.getElementById('detailModal').classList.remove('active');
+}
+
+// ===== エクスポート =====
+function exportData() {
+  const recipes = getRecipes();
+  if (recipes.length === 0) {
+    alert('エクスポートするレシピがありません。');
+    return;
+  }
+  const json = JSON.stringify(recipes, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `recipes_${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ===== インポート =====
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!Array.isArray(data)) {
+        alert('無効なデータ形式です。JSON配列が必要です。');
+        return;
+      }
+
+      const existing = getRecipes();
+      const existingIds = new Set(existing.map(r => r.id));
+
+      // 既存IDと重複しないレシピだけ追加
+      let addedCount = 0;
+      data.forEach(recipe => {
+        if (recipe.name) {
+          if (existingIds.has(recipe.id)) {
+            // IDが重複する場合は上書き
+            const idx = existing.findIndex(r => r.id === recipe.id);
+            existing[idx] = recipe;
+          } else {
+            // 新規追加（IDがなければ生成）
+            if (!recipe.id) recipe.id = generateId();
+            existing.push(recipe);
+          }
+          addedCount++;
+        }
+      });
+
+      setRecipes(existing);
+      applyFilters();
+      alert(`${addedCount}件のレシピをインポートしました。`);
+    } catch {
+      alert('ファイルの読み込みに失敗しました。正しいJSONファイルか確認してください。');
+    }
+  };
+  reader.readAsText(file);
+  // input値をリセット（同じファイルを再選択できるように）
+  event.target.value = '';
+}
+
+// ===== HTMLエスケープ =====
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// ===== モーダル外クリックで閉じる =====
+document.getElementById('formModal').addEventListener('click', function(e) {
+  if (e.target === this) closeFormModal();
+});
+document.getElementById('detailModal').addEventListener('click', function(e) {
+  if (e.target === this) closeDetailModal();
+});
+
+// ===== 検索欄のイベント処理 =====
+// ポーリング方式：イベントに依存せず入力値の変化を検知
+(function() {
+  var searchInput = document.getElementById('searchInput');
+  var lastValue = searchInput.value;
+
+  // 200msごとに入力値をチェックし、変化があれば検索実行
+  setInterval(function() {
+    var currentValue = searchInput.value;
+    if (currentValue !== lastValue) {
+      lastValue = currentValue;
+      applyFilters();
+    }
+  }, 200);
+
+  // イベントリスナーも併用（即座に反応するため）
+  function doSearch() {
+    var currentValue = searchInput.value;
+    if (currentValue !== lastValue) {
+      lastValue = currentValue;
+      applyFilters();
+    }
+  }
+
+  searchInput.addEventListener('input', doSearch);
+  searchInput.addEventListener('keyup', doSearch);
+  searchInput.addEventListener('compositionend', doSearch);
+  searchInput.addEventListener('change', doSearch);
+  searchInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      lastValue = searchInput.value;
+      applyFilters();
+    }
+  });
+})();
+
+// ===== プリセットタグ =====
+const PRESET_TAGS = ['主菜', '副菜', '汁物', 'ご飯もの', '麺類', 'おつまみ', '和食', '洋食', '中華', '韓国料理', '簡単', '時短', '作り置き', 'ヘルシー'];
+
+function renderPresetTags() {
+  var container = document.getElementById('presetTags');
+  if (!container) return;
+  container.innerHTML = '';
+  PRESET_TAGS.forEach(function(t) {
+    if (currentTags.indexOf(t) !== -1) return; // 既に追加済みは非表示
+    var btn = document.createElement('button');
+    btn.className = 'preset-tag';
+    btn.textContent = '+ ' + t;
+    btn.type = 'button';
+    btn.addEventListener('click', function() {
+      if (currentTags.indexOf(t) === -1) {
+        currentTags.push(t);
+        renderTagInput();
+        renderTagSuggestions();
+        renderPresetTags();
+      }
+    });
+    container.appendChild(btn);
+  });
+}
+
+// renderTagInput / renderTagSuggestions が呼ばれる際にプリセットタグも更新
+var _origRenderTagInput = renderTagInput;
+renderTagInput = function() {
+  _origRenderTagInput();
+  renderPresetTags();
+};
+
+// ===== 設定モーダル（APIキー管理） =====
+const API_KEY_STORAGE = 'youtube-api-key';
+
+function openSettingsModal() {
+  var key = localStorage.getItem(API_KEY_STORAGE) || '';
+  document.getElementById('inputApiKey').value = key;
+  document.getElementById('settingsModal').classList.add('active');
+}
+
+function closeSettingsModal() {
+  document.getElementById('settingsModal').classList.remove('active');
+}
+
+function saveApiKey() {
+  var key = document.getElementById('inputApiKey').value.trim();
+  if (key) {
+    localStorage.setItem(API_KEY_STORAGE, key);
+  } else {
+    localStorage.removeItem(API_KEY_STORAGE);
+  }
+  closeSettingsModal();
+  alert(key ? 'APIキーを保存しました。' : 'APIキーを削除しました。');
+}
+
+// 設定モーダルの外側クリックで閉じる
+document.getElementById('settingsModal').addEventListener('click', function(e) {
+  if (e.target === this) closeSettingsModal();
+});
+
+// ===== YouTube検索モーダル =====
+function openYoutubeModal() {
+  var apiKey = localStorage.getItem(API_KEY_STORAGE);
+  var noKeyMsg = document.getElementById('ytNoKeyMsg');
+  var searchArea = document.getElementById('ytSearchArea');
+
+  if (apiKey) {
+    noKeyMsg.style.display = 'none';
+    searchArea.style.display = 'block';
+  } else {
+    noKeyMsg.style.display = 'block';
+    searchArea.style.display = 'none';
+  }
+
+  document.getElementById('youtubeModal').classList.add('active');
+
+  // 検索入力にフォーカス
+  if (apiKey) {
+    setTimeout(function() {
+      document.getElementById('ytSearchInput').focus();
+    }, 100);
+  }
+}
+
+function closeYoutubeModal() {
+  document.getElementById('youtubeModal').classList.remove('active');
+}
+
+// YouTube検索モーダルの外側クリックで閉じる
+document.getElementById('youtubeModal').addEventListener('click', function(e) {
+  if (e.target === this) closeYoutubeModal();
+});
+
+// Enterキーで検索
+document.getElementById('ytSearchInput').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    searchYoutube();
+  }
+});
+
+// YouTube Data API v3で動画検索
+function searchYoutube() {
+  var query = document.getElementById('ytSearchInput').value.trim();
+  if (!query) return;
+
+  var apiKey = localStorage.getItem(API_KEY_STORAGE);
+  if (!apiKey) {
+    alert('APIキーが設定されていません。設定画面から登録してください。');
+    return;
+  }
+
+  var resultsDiv = document.getElementById('ytResults');
+  resultsDiv.innerHTML = '<div class="yt-loading">検索中...</div>';
+
+  // 「料理 レシピ」を自動付加
+  var searchQuery = query + ' 料理 レシピ';
+  var url = 'https://www.googleapis.com/youtube/v3/search' +
+    '?part=snippet&type=video&maxResults=10&q=' + encodeURIComponent(searchQuery) +
+    '&key=' + encodeURIComponent(apiKey);
+
+  fetch(url)
+    .then(function(res) {
+      if (!res.ok) {
+        return res.json().then(function(err) {
+          throw new Error(err.error ? err.error.message : 'APIエラー');
+        });
+      }
+      return res.json();
+    })
+    .then(function(data) {
+      renderYoutubeResults(data.items || []);
+    })
+    .catch(function(err) {
+      resultsDiv.innerHTML = '<div class="yt-error">検索エラー: ' +
+        escapeHtml(err.message) + '</div>';
+    });
+}
+
+// 検索結果を描画
+function renderYoutubeResults(items) {
+  var resultsDiv = document.getElementById('ytResults');
+
+  if (items.length === 0) {
+    resultsDiv.innerHTML = '<div class="yt-loading">動画が見つかりませんでした</div>';
+    return;
+  }
+
+  resultsDiv.innerHTML = '';
+  var container = document.createElement('div');
+  container.className = 'yt-results';
+
+  items.forEach(function(item) {
+    var videoId = item.id.videoId;
+    var title = item.snippet.title;
+    var channel = item.snippet.channelTitle;
+    var thumb = item.snippet.thumbnails.medium
+      ? item.snippet.thumbnails.medium.url
+      : item.snippet.thumbnails.default.url;
+
+    var card = document.createElement('div');
+    card.className = 'yt-card';
+
+    var img = document.createElement('img');
+    img.className = 'yt-thumb';
+    img.src = thumb;
+    img.alt = title;
+    img.loading = 'lazy';
+    card.appendChild(img);
+
+    var info = document.createElement('div');
+    info.className = 'yt-info';
+
+    var titleEl = document.createElement('div');
+    titleEl.className = 'yt-title';
+    titleEl.textContent = title;
+    info.appendChild(titleEl);
+
+    var channelEl = document.createElement('div');
+    channelEl.className = 'yt-channel';
+    channelEl.textContent = channel;
+    info.appendChild(channelEl);
+
+    var actions = document.createElement('div');
+    actions.className = 'yt-actions';
+
+    var saveBtn = document.createElement('button');
+    saveBtn.className = 'btn-yt-save';
+    saveBtn.textContent = 'レシピとして保存';
+    saveBtn.addEventListener('click', function() {
+      saveYoutubeAsRecipe(title, channel, videoId);
+    });
+    actions.appendChild(saveBtn);
+
+    var watchLink = document.createElement('a');
+    watchLink.className = 'btn-yt-watch';
+    watchLink.href = 'https://www.youtube.com/watch?v=' + videoId;
+    watchLink.target = '_blank';
+    watchLink.rel = 'noopener noreferrer';
+    watchLink.textContent = '動画を見る';
+    actions.appendChild(watchLink);
+
+    info.appendChild(actions);
+    card.appendChild(info);
+    container.appendChild(card);
+  });
+
+  resultsDiv.appendChild(container);
+}
+
+// YouTube検索結果からレシピ保存モーダルを開く
+function saveYoutubeAsRecipe(title, channel, videoId) {
+  closeYoutubeModal();
+  // レシピ追加モーダルを開いて自動入力
+  openAddModal();
+  document.getElementById('inputName').value = title;
+  document.getElementById('inputYoutuber').value = channel;
+  document.getElementById('inputUrl').value = 'https://www.youtube.com/watch?v=' + videoId;
+}
+
+// ===== Service Worker登録 =====
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/sw.js').then(function(reg) {
+      // 新しいバージョンが待機中なら更新バナーを表示
+      reg.addEventListener('updatefound', function() {
+        var newWorker = reg.installing;
+        if (newWorker) {
+          newWorker.addEventListener('statechange', function() {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              document.getElementById('updateBanner').classList.add('show');
+            }
+          });
+        }
+      });
+    }).catch(function(err) {
+      console.log('Service Worker登録失敗:', err);
+    });
+  });
+}
+
+// ===== 初期表示 =====
+applyFilters();
+</script>
+</body>
+</html>
